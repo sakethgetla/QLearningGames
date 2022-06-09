@@ -18,8 +18,10 @@ const App: Component = (props) => {
   // let ball: {body: anyType, vel: Vec2, pos: Vec2} ;
   let balls: any = [];
   let velMag: number = 20;
+  let numBalls: number = 10;
   let player: any = null;
-  let playerRadius: number = radius * 2;
+  let playerRadius: number = radius * 1.8;
+  let playerCoreRadius: number = radius * 0.5;
 
 
   // const gravity = planck.Vec2(0.0, 50.0);
@@ -53,7 +55,7 @@ const App: Component = (props) => {
     body.createFixture(dynamicCircle, {
       density: 1,
       friction: 0,
-      filterGroupIndex: -1, // dont interact with each other.
+      filterGroupIndex: -1, //dont interact with each other balls.
       restitution: 1
     });
 
@@ -68,7 +70,7 @@ const App: Component = (props) => {
     //
     const body = toWorld.createDynamicBody({
       position: Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())),
-      linearDamping: 1,
+      // linearDamping: 1,
       userData: -1
     })
 
@@ -81,7 +83,7 @@ const App: Component = (props) => {
       restitution: 1
     });
 
-    const dynamicCore = planck.Circle(playerRadius / 4);
+    const dynamicCore = planck.Circle(playerCoreRadius);
 
     body.createFixture(dynamicCore, {
       density: 0,
@@ -108,7 +110,7 @@ const App: Component = (props) => {
     }
   });
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < numBalls; i++) {
     balls.push(createBall(world, i));
   }
 
@@ -304,8 +306,11 @@ const App: Component = (props) => {
         circlePos = [player.getPosition().x, player.getPosition().y]
         ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, playerRadius * ratio, 0, 2 * Math.PI, false);
         ctx.stroke();
-        // ctx.fill();
 
+        ctx.beginPath();
+        ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, playerCoreRadius * ratio, 0, 2 * Math.PI, false);
+      // ctx.fillstyle = "#028888";
+        ctx.fill();
         frame = requestAnimationFrame(draw)
         x++;
         // console.log('frame:', frame, x);
