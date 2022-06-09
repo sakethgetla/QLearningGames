@@ -2,14 +2,17 @@
   "name": "vite-template-solid",
   "version": "0.0.0",
   "description": "",
+  "homepage": "https://sakethgetla.github.io/QLearningGames",
   "scripts": {
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
+    "deploy": "gh-pages -d dist",
     "serve": "vite preview"
   },
   "license": "MIT",
   "devDependencies": {
+    "gh-pages": "^4.0.0",
     "typescript": "^4.6.4",
     "vite": "^2.9.9",
     "vite-plugin-solid": "^2.2.6"

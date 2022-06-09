@@ -17,6 +17,7 @@ const App: Component = (props) => {
   let frameSize: [number, number] = [50.0, 50.0];
   // let ball: {body: anyType, vel: Vec2, pos: Vec2} ;
   let balls: any = [];
+  let velMag: number = 20;
   let player: any = null;
   let playerRadius: number = radius * 2;
 
@@ -115,33 +116,122 @@ const App: Component = (props) => {
   player = createSensor(world);
   console.log(player)
 
-  document.addEventListener('keydown', e => {
-    // console.log(e)
-    switch (e.key) {
+
+  function setPlayerVel(dir, status) {
+    switch (dir) {
       case "ArrowRight": {
         // console.log("arrow right")
-        player.applyLinearImpulse(Vec2(10, 0), player.getPosition());
+        if (status === 'on') {
+          player.setLinearVelocity(Vec2(velMag, player.getLinearVelocity().y), player.getPosition());
+        } else if (status === 'off') {
+          player.setLinearVelocity(Vec2(0, player.getLinearVelocity().y), player.getPosition());
+        }
         break;
       }
       case "ArrowLeft": {
         // console.log("arrow left")
-        // player.applyForceToCenter(Vec2(-100, 0));
-        player.applyLinearImpulse(Vec2(-10, 0), player.getPosition());
+        if (status === 'on') {
+          player.setLinearVelocity(Vec2(-velMag, player.getLinearVelocity().y), player.getPosition());
+        } else if (status === 'off') {
+          player.setLinearVelocity(Vec2(0, player.getLinearVelocity().y), player.getPosition());
+        }
         break;
       }
       case "ArrowDown": {
         // console.log("arrow down")
-        // player.applyForceToCenter(Vec2(0, 100));
-        player.applyLinearImpulse(Vec2(0, 10), player.getPosition());
+        if (status === 'on') {
+          player.setLinearVelocity(Vec2(player.getLinearVelocity().x, velMag), player.getPosition());
+        } else if (status === 'off') {
+          player.setLinearVelocity(Vec2(player.getLinearVelocity().x, 0), player.getPosition());
+        }
         break;
       }
       case "ArrowUp": {
         // console.log("arrow up")
-        // player.applyForceToCenter(Vec2(0, -100));
-        player.applyLinearImpulse(Vec2(0, -10), player.getPosition());
+        if (status === 'on') {
+          player.setLinearVelocity(Vec2(player.getLinearVelocity().x, -velMag), player.getPosition());
+        } else if (status === 'off') {
+          player.setLinearVelocity(Vec2(player.getLinearVelocity().x, 0), player.getPosition());
+        }
+        break;
+      }
+
+    }
+  }
+
+
+  document.addEventListener('keyup', e => {
+    // console.log(e)
+    switch (e.key) {
+      case "ArrowRight": {
+        // console.log("arrow right")
+        setPlayerVel(e.key, 'off')
+        break;
+      }
+      case "ArrowLeft": {
+        // console.log("arrow left")
+        setPlayerVel(e.key, 'off')
+        break;
+      }
+      case "ArrowDown": {
+        // console.log("arrow down")
+        setPlayerVel(e.key, 'off')
+        break;
+      }
+      case "ArrowUp": {
+        // console.log("arrow up")
+        setPlayerVel(e.key, 'off')
         break;
       }
     }
+  })
+
+  document.addEventListener('keydown', e => {
+    switch (e.key) {
+      case "ArrowRight": {
+        // console.log("arrow right")
+        setPlayerVel(e.key, 'on')
+        break;
+      }
+      case "ArrowLeft": {
+        // console.log("arrow left")
+        setPlayerVel(e.key, 'on')
+        break;
+      }
+      case "ArrowDown": {
+        // console.log("arrow down")
+        setPlayerVel(e.key, 'on')
+        break;
+      }
+      case "ArrowUp": {
+        // console.log("arrow up")
+        setPlayerVel(e.key, 'on')
+        break;
+      }
+    }
+    // console.log(e)
+    // switch (e.key) {
+    //   case "ArrowRight": {
+    //     // console.log("arrow right")
+    //     player.applyLinearImpulse(Vec2(10, 0), player.getPosition());
+    //     break;
+    //   }
+    //   case "ArrowLeft": {
+    //     // console.log("arrow left")
+    //     player.applyLinearImpulse(Vec2(-10, 0), player.getPosition());
+    //     break;
+    //   }
+    //   case "ArrowDown": {
+    //     // console.log("arrow down")
+    //     player.applyLinearImpulse(Vec2(0, 10), player.getPosition());
+    //     break;
+    //   }
+    //   case "ArrowUp": {
+    //     // console.log("arrow up")
+    //     player.applyLinearImpulse(Vec2(0, -10), player.getPosition());
+    //     break;
+    //   }
+    // }
   })
 
   // balls.push(createBall(world));
@@ -171,7 +261,7 @@ const App: Component = (props) => {
 
         var contact = player.getContactList();
         if (contact && contact.contact.m_fixtureA.m_body.m_type === 'dynamic' && contact.contact.m_fixtureB.m_body.m_type === 'dynamic') {
-            // console.log(contact);
+          // console.log(contact);
           if (contact.contact.m_fixtureB.m_isSensor) {
             // console.log('here');
             // balls[contact.m_fixtureA.m_body.m_userData].setTransform(Vec2(0, 0), 0);
