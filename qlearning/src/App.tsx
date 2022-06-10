@@ -3,6 +3,7 @@ import type { Component } from 'solid-js';
 import { onCleanup, onMount } from 'solid-js';
 import * as planck from 'planck';
 import { Vec2 } from 'planck';
+import { Model } from './Model';
 
 
 const App: Component = (props) => {
@@ -20,10 +21,14 @@ const App: Component = (props) => {
   let velMag: number = 20;
   let numBalls: number = 10;
   let player: any = null;
-  let playerRadius: number = radius * 1.8;
+  let playerRadius: number = radius * 1.5;
   let playerCoreRadius: number = radius * 0.5;
+  let playerDetectionRadius: number = radius * 4;
 
-
+  enum userData {
+    detectionCircle,
+    feedingCircle
+  }
   // const gravity = planck.Vec2(0.0, 50.0);
 
   const world = new planck.World(planck.Vec2(0, 0));
@@ -74,17 +79,29 @@ const App: Component = (props) => {
       userData: -1
     })
 
-    const dynamicCircle = planck.Circle(playerRadius);
 
+    // detection range
+    const dynamicDetectionCircle = planck.Circle(playerDetectionRadius);
+    body.createFixture(dynamicDetectionCircle, {
+      density: 0,
+      friction: 0,
+      isSensor: true, // doesnt collide with other but still collects info.
+      restitution: 1,
+      userData: userData.detectionCircle
+    });
+
+    // feeding range
+    const dynamicCircle = planck.Circle(playerRadius);
     body.createFixture(dynamicCircle, {
       density: 0,
       friction: 0,
       isSensor: true, // doesnt collide with other but still collects info.
-      restitution: 1
+      restitution: 1,
+      userData: userData.feedingCircle
     });
 
+    // prevent player from leaving the map.
     const dynamicCore = planck.Circle(playerCoreRadius);
-
     body.createFixture(dynamicCore, {
       density: 0,
       friction: 0,
@@ -97,26 +114,28 @@ const App: Component = (props) => {
 
 
   // get collisions
-  world.on('begin-contact', contact => {
-    // console.log(contact.m_fixtureA.m_isSensor);
-    // console.log(contact.m_fixtureB.m_isSensor);
-    // console.log(contact['m_fixtureA']);
-    if (contact.m_fixtureB.m_isSensor && contact.m_fixtureA.m_body.m_type === 'dynamic') {
+  // world.on('begin-contact', contact => {
+  //   // console.log(contact.m_fixtureA.m_isSensor);
+  //   // console.log(contact.m_fixtureB.m_isSensor);
+  //   // console.log(contact['m_fixtureA']);
+  //   if (contact.m_fixtureB.m_isSensor && contact.m_fixtureA.m_body.m_type === 'dynamic') {
 
-    } else if (contact.m_fixtureA.m_isSensor && contact.m_fixtureB.m_body.m_type === 'dynamic') {
-      // console.log('contact');
-      // console.log(contact.m_fixtureB);
-      // balls[contact.m_fixtureB.m_body.userData].setPosition(radius + ((frameSize[0] - radius - radius) * Math.random()), radius + ((frameSize[1] - radius - radius) * Math.random()))
-    }
-  });
+  //   } else if (contact.m_fixtureA.m_isSensor && contact.m_fixtureB.m_body.m_type === 'dynamic') {
+  //     // console.log('contact');
+  //     // console.log(contact.m_fixtureB);
+  //     // balls[contact.m_fixtureB.m_body.userData].setPosition(radius + ((frameSize[0] - radius - radius) * Math.random()), radius + ((frameSize[1] - radius - radius) * Math.random()))
+  //   }
+  // });
 
+  // create all the partiles
   for (let i = 0; i < numBalls; i++) {
     balls.push(createBall(world, i));
   }
 
 
+  // create player
   player = createSensor(world);
-  console.log(player)
+  // console.log(player)
 
 
   function setPlayerVel(dir, status) {
@@ -262,27 +281,24 @@ const App: Component = (props) => {
         // ctx.beginPath();
 
         var contact = player.getContactList();
+        // ignoring the contact with whe walls
         if (contact && contact.contact.m_fixtureA.m_body.m_type === 'dynamic' && contact.contact.m_fixtureB.m_body.m_type === 'dynamic') {
-          // console.log(contact);
-          if (contact.contact.m_fixtureB.m_isSensor) {
-            // console.log('here');
-            // balls[contact.m_fixtureA.m_body.m_userData].setTransform(Vec2(0, 0), 0);
-            // console.log('relocate', bodynum, balls[bodynum]);
-            // balls[bodynum].setActive(false);
+          // detected the food.
+          if (contact.contact.m_fixtureA.m_userData === userData.detectionCircle || contact.contact.m_fixtureB.m_userData === userData.detectionCircle) {
+            // console.log('detected', contact.contact);
+
+          }
+          // player eats food
+          if (contact.contact.m_fixtureB.m_isSensor && contact.contact.m_fixtureB.m_userData === userData.feedingCircle) {
+            // only resetting position for now. later reset velocity aswell.
             var bodynum = contact.contact.m_fixtureA.m_body.m_userData;
             balls[bodynum].setPosition(Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())));
-            // world.destroyBody(balls[bodynum]);
 
-
-          } else if (contact.contact.m_fixtureA.m_isSensor) {
-            // balls[contact.contact.m_fixtureB.m_body.m_userData].setTransform(Vec2(0, 0), 0);
+          } else if (contact.contact.m_fixtureA.m_isSensor && contact.contact.m_fixtureA.m_userData === userData.feedingCircle) {
             var bodynum = contact.contact.m_fixtureB.m_body.m_userData;
             balls[bodynum].setPosition(Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())));
 
-            // var bodynum = contact.contact.m_fixtureA.m_body.m_userData;
-            // console.log('relocate', bodynum, balls[bodynum]);
           }
-
         }
 
         // run next step in simulation.
@@ -308,8 +324,11 @@ const App: Component = (props) => {
         ctx.stroke();
 
         ctx.beginPath();
+        ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, playerDetectionRadius * ratio, 0, 2 * Math.PI, false);
+        ctx.stroke();
+
+        ctx.beginPath();
         ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, playerCoreRadius * ratio, 0, 2 * Math.PI, false);
-      // ctx.fillstyle = "#028888";
         ctx.fill();
         frame = requestAnimationFrame(draw)
         x++;
