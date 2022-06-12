@@ -23,7 +23,8 @@ const App: Component = (props) => {
   let player: any = null;
   let playerRadius: number = radius * 1.5;
   let playerCoreRadius: number = radius * 0.5;
-  let playerDetectionRadius: number = radius * 4;
+  let playerDetectionRadius: number = radius * 7;
+  let detectedballs: any = [];
 
   enum userData {
     detectionCircle,
@@ -260,11 +261,28 @@ const App: Component = (props) => {
 
   // simulation
 
+  const model = new Model();
+  function movePlayer(relPos, dist, playerPos) {
+
+    if (relPos && dist && playerPos) {
+      // var output = model.testModel([[1, 1, 1, 1, 10]])
+
+      // console.log([  relPos.x, relPos.y, dist, playerPos.x, playerPos.y ])
+      var output = model.testModel([[  relPos.x, relPos.y, dist, playerPos.x, playerPos.y ]])
+      // console.log( output.dataSync())
+
+
+
+    }
+
+  }
+
   const timestep = 1 / FPS;
 
   const velocityIterations = 8;
   const positionIterations = 3;
 
+  console.log(Vec2(4, 3).normalize());
 
   const draw = (time: number) => {
     const ctx = canvasRef?.getContext("2d") ?? null;
@@ -280,14 +298,34 @@ const App: Component = (props) => {
         ctx.clearRect(0, 0, frameSize[0] * ratio, frameSize[1] * ratio);
         // ctx.beginPath();
 
+        // it can only detect 1 collion?
+        detectedballs = [];
         var contact = player.getContactList();
         // ignoring the contact with whe walls
+        // console.log(( contact !== null && contact.lenght >= 2 ));
         if (contact && contact.contact.m_fixtureA.m_body.m_type === 'dynamic' && contact.contact.m_fixtureB.m_body.m_type === 'dynamic') {
           // detected the food.
           if (contact.contact.m_fixtureA.m_userData === userData.detectionCircle || contact.contact.m_fixtureB.m_userData === userData.detectionCircle) {
-            // console.log('detected', contact.contact);
+            // console.log('detected');
+
+            var bodynum = null;
+            if (contact.contact.m_fixtureB.m_isSensor && contact.contact.m_fixtureB.m_userData === userData.detectionCircle) {
+              bodynum = contact.contact.m_fixtureA.m_body.m_userData;
+              detectedballs.push(bodynum);
+            } else if (contact.contact.m_fixtureA.m_isSensor && contact.contact.m_fixtureA.m_userData === userData.detectionCircle) {
+              bodynum = contact.contact.m_fixtureB.m_body.m_userData;
+              detectedballs.push(odynum);
+            }
+
+            var playerPos = player.getPosition();
+            var ballPos = balls[bodynum].getPosition();
+            var relPos = ballPos.sub(playerPos);
+            var dist = Vec2.distance(ballPos, playerPos);
+
+            movePlayer(relPos, dist, playerPos);
 
           }
+
           // player eats food
           if (contact.contact.m_fixtureB.m_isSensor && contact.contact.m_fixtureB.m_userData === userData.feedingCircle) {
             // only resetting position for now. later reset velocity aswell.
@@ -330,6 +368,15 @@ const App: Component = (props) => {
         ctx.beginPath();
         ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, playerCoreRadius * ratio, 0, 2 * Math.PI, false);
         ctx.fill();
+
+
+        detectedballs.map(ballnum => {
+          ctx.moveTo(circlePos[0] * ratio, circlePos[1] * ratio);
+          ctx.lineTo(balls[ballnum].getPosition().x * ratio, balls[ballnum].getPosition().y * ratio)
+          ctx.stroke();
+        })
+
+
         frame = requestAnimationFrame(draw)
         x++;
         // console.log('frame:', frame, x);
