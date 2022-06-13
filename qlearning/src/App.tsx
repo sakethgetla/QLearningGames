@@ -4,6 +4,7 @@ import { onCleanup, onMount } from 'solid-js';
 import * as planck from 'planck';
 import { Vec2 } from 'planck';
 import { Model } from './Model';
+import { createBall, createPlayer, userData, createWiskers } from './helperFunctions'
 
 
 const App: Component = (props) => {
@@ -25,11 +26,12 @@ const App: Component = (props) => {
   let playerCoreRadius: number = ballRadius * 0.5;
   let playerDetectionRadius: number = ballRadius * 7;
   let detectedballs: any = [];
+  let numWiskers = 8;
+  let wiskerRadius = playerRadius * 4;
+  const wiskers = createWiskers(numWiskers, wiskerRadius);
 
-  enum userData {
-    detectionCircle = 'detectionCircle',
-    feedingCircle = 'feedingCircle'
-  }
+
+
   // const gravity = planck.Vec2(0.0, 50.0);
 
   const world = new planck.World(planck.Vec2(0, 0));
@@ -47,71 +49,7 @@ const App: Component = (props) => {
   // Create fixtures on the body.
   //create the dynamic body (moving / non static)
 
-  function createBall(toWorld, userData) {
-    // const body = toWorld.createDynamicBody(Vec2(radius + ((frameSize[0] - radius - radius) * Math.random()), radius + ((frameSize[1] - radius - radius) * Math.random())))
-    // const body = toWorld.createKinematicBody(Vec2(radius + ((frameSize[0] - radius - radius) * Math.random()), radius + ((frameSize[1] - radius - radius) * Math.random())))
-    const body = toWorld.createDynamicBody({
-      position: Vec2(ballRadius + ((frameSize[0] - ballRadius - ballRadius) * Math.random()), ballRadius + ((frameSize[1] - ballRadius - ballRadius) * Math.random())),
-      linearVelocity: Vec2((20 * Math.random()) - 10, (20 * Math.random()) - 10),
-      userData: userData
-    })
 
-    const dynamicCircle = planck.Circle(ballRadius);
-
-    body.createFixture(dynamicCircle, {
-      density: 1,
-      friction: 0,
-      filterGroupIndex: -1, //dont interact with each other balls.
-      restitution: 1
-    });
-
-    // body.setLinearVelocity(Vec2((20 * Math.random()) - 10, (20 * Math.random()) - 10))
-    // body.setUserData(i);
-    return body
-  }
-
-  function createSensor(toWorld) {
-    // const body = toWorld.createDynamicBody(Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())))
-    // const body = toWorld.createKinematicBody(Vec2(radius + ((frameSize[0] - radius - radius) * Math.random()), radius + ((frameSize[1] - radius - radius) * Math.random())))
-    //
-    const body = toWorld.createDynamicBody({
-      position: Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())),
-      // linearDamping: 1,
-      userData: -1
-    })
-
-
-    // detection range
-    const dynamicDetectionCircle = planck.Circle(playerDetectionRadius);
-    body.createFixture(dynamicDetectionCircle, {
-      density: 0,
-      friction: 0,
-      isSensor: true, // doesnt collide with other but still collects info.
-      restitution: 1,
-      userData: userData.detectionCircle
-    });
-
-    // feeding range
-    const dynamicCircle = planck.Circle(playerRadius);
-    body.createFixture(dynamicCircle, {
-      density: 0,
-      friction: 0,
-      isSensor: true, // doesnt collide with other but still collects info.
-      restitution: 1,
-      userData: userData.feedingCircle
-    });
-
-    // prevent player from leaving the map.
-    const dynamicCore = planck.Circle(playerCoreRadius);
-    body.createFixture(dynamicCore, {
-      density: 0,
-      friction: 0,
-      restitution: 0
-    });
-
-    // body.setLinearVelocity(Vec2((20 * Math.random()) - 10, (20 * Math.random()) - 10))
-    return body
-  }
 
 
   // get collisions
@@ -130,12 +68,12 @@ const App: Component = (props) => {
 
   // create all the partiles
   for (let i = 0; i < numBalls; i++) {
-    balls.push(createBall(world, i));
+    balls.push(createBall(world, i, ballRadius, frameSize));
   }
 
 
   // create player
-  player = createSensor(world);
+  player = createPlayer(world, playerRadius, frameSize, wiskers);
   // console.log(player)
 
 
@@ -269,7 +207,9 @@ const App: Component = (props) => {
 
       // console.log([  relPos.x, relPos.y, dist, playerPos.x, playerPos.y ])
       var output = model.testModel([[relPos.x, relPos.y, dist, playerPos.x, playerPos.y]])
+      // output.print();
       // console.log( output.dataSync())
+
 
 
 
@@ -316,24 +256,25 @@ const App: Component = (props) => {
         while (contact) {
           // console.log(contact);
           if (contact && contact.other.m_type === 'dynamic' && contact.contact.m_touchingFlag) {
-          // if (contact && contact.other.m_type === 'dynamic' ) {
+            // if (contact && contact.other.m_type === 'dynamic' ) {
             // detected the food.
             // if (contact.contact.m_fixtureA.m_userData === userData.detectionCircle || contact.contact.m_fixtureB.m_userData === userData.detectionCircle) {
-            var bodynum = contact.other.m_userData;
+            var bodynum = contact.other.m_userData[1];
             if (contact.contact.m_fixtureA.m_userData === userData.feedingCircle || contact.contact.m_fixtureB.m_userData === userData.feedingCircle) {
-            // player eats food
+              // player eats food
               eatBall(bodynum);
-            } else if (contact.contact.m_fixtureA.m_userData === userData.detectionCircle || contact.contact.m_fixtureB.m_userData === userData.detectionCircle) {
-            // player detects food
+            } else if (contact.contact.m_fixtureA.m_userData[0] === userData.wisker || contact.contact.m_fixtureB.m_userData[0] === userData.wisker) {
+              // player detects food
               // console.log('detected');
-              var playerPos = player.getPosition();
-              var ballPos = balls[bodynum].getPosition();
-              var relPos = ballPos.sub(playerPos);
-              var dist = relPos.normalize();
-              // var dist = Vec2.distance(ballPos, playerPos);
 
-              detectedballs.push(bodynum);
-              movePlayer(relPos, dist, playerPos);
+              // var playerPos = player.getPosition();
+              // var ballPos = balls[bodynum].getPosition();
+              // var relPos = ballPos.sub(playerPos);
+              // var dist = relPos.normalize();
+              // // var dist = Vec2.distance(ballPos, playerPos);
+
+              // detectedballs.push(bodynum);
+              // movePlayer(relPos, dist, playerPos);
 
             }
 
@@ -362,15 +303,21 @@ const App: Component = (props) => {
         ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, playerRadius * ratio, 0, 2 * Math.PI, false);
         ctx.stroke();
 
-        ctx.beginPath();
-        ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, playerDetectionRadius * ratio, 0, 2 * Math.PI, false);
-        ctx.stroke();
+        // display wiskers
+        wiskers.forEach(wisker => {
+          ctx.beginPath();
+          ctx.moveTo(circlePos[0] * ratio, circlePos[1] * ratio);
+          ctx.lineTo((wisker.x + circlePos[0]) * ratio, (wisker.y + circlePos[1]) * ratio);
+          ctx.stroke();
+
+        })
 
         ctx.beginPath();
         ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, playerCoreRadius * ratio, 0, 2 * Math.PI, false);
         ctx.fill();
 
 
+        // display balls
         detectedballs.map(ballnum => {
           ctx.moveTo(circlePos[0] * ratio, circlePos[1] * ratio);
           ctx.lineTo(balls[ballnum].getPosition().x * ratio, balls[ballnum].getPosition().y * ratio)
