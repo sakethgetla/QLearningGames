@@ -14,21 +14,21 @@ const App: Component = (props) => {
   const FPS: number = 60;
   const ratio: number = 10;
   let circlePos: [number, number] = [10.0, 20.0];
-  let radius: number = 1.0;
+  let ballRadius: number = 1.0;
   let frameSize: [number, number] = [50.0, 50.0];
   // let ball: {body: anyType, vel: Vec2, pos: Vec2} ;
   let balls: any = [];
   let velMag: number = 20;
   let numBalls: number = 10;
   let player: any = null;
-  let playerRadius: number = radius * 1.5;
-  let playerCoreRadius: number = radius * 0.5;
-  let playerDetectionRadius: number = radius * 7;
+  let playerRadius: number = ballRadius * 1.5;
+  let playerCoreRadius: number = ballRadius * 0.5;
+  let playerDetectionRadius: number = ballRadius * 7;
   let detectedballs: any = [];
 
   enum userData {
-    detectionCircle,
-    feedingCircle
+    detectionCircle = 'detectionCircle',
+    feedingCircle = 'feedingCircle'
   }
   // const gravity = planck.Vec2(0.0, 50.0);
 
@@ -51,12 +51,12 @@ const App: Component = (props) => {
     // const body = toWorld.createDynamicBody(Vec2(radius + ((frameSize[0] - radius - radius) * Math.random()), radius + ((frameSize[1] - radius - radius) * Math.random())))
     // const body = toWorld.createKinematicBody(Vec2(radius + ((frameSize[0] - radius - radius) * Math.random()), radius + ((frameSize[1] - radius - radius) * Math.random())))
     const body = toWorld.createDynamicBody({
-      position: Vec2(radius + ((frameSize[0] - radius - radius) * Math.random()), radius + ((frameSize[1] - radius - radius) * Math.random())),
+      position: Vec2(ballRadius + ((frameSize[0] - ballRadius - ballRadius) * Math.random()), ballRadius + ((frameSize[1] - ballRadius - ballRadius) * Math.random())),
       linearVelocity: Vec2((20 * Math.random()) - 10, (20 * Math.random()) - 10),
       userData: userData
     })
 
-    const dynamicCircle = planck.Circle(radius);
+    const dynamicCircle = planck.Circle(ballRadius);
 
     body.createFixture(dynamicCircle, {
       density: 1,
@@ -268,13 +268,21 @@ const App: Component = (props) => {
       // var output = model.testModel([[1, 1, 1, 1, 10]])
 
       // console.log([  relPos.x, relPos.y, dist, playerPos.x, playerPos.y ])
-      var output = model.testModel([[  relPos.x, relPos.y, dist, playerPos.x, playerPos.y ]])
+      var output = model.testModel([[relPos.x, relPos.y, dist, playerPos.x, playerPos.y]])
       // console.log( output.dataSync())
 
 
 
     }
 
+  }
+
+  function eatBall(bodyNum) {
+    // balls[bodyNum].setPosition
+
+    // console.log(bodyNum, balls);
+    balls[bodyNum].setPosition(Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())));
+    balls[bodyNum].setLinearVelocity(Vec2((20 * Math.random()) - 10, (20 * Math.random()) - 10));
   }
 
   const timestep = 1 / FPS;
@@ -298,47 +306,40 @@ const App: Component = (props) => {
         ctx.clearRect(0, 0, frameSize[0] * ratio, frameSize[1] * ratio);
         // ctx.beginPath();
 
-        // it can only detect 1 collion?
+        // it can only detect 1 collion, use contact.getNext to get the next contact
         detectedballs = [];
         var contact = player.getContactList();
-        // ignoring the contact with whe walls
-        // console.log(( contact !== null && contact.lenght >= 2 ));
-        if (contact && contact.contact.m_fixtureA.m_body.m_type === 'dynamic' && contact.contact.m_fixtureB.m_body.m_type === 'dynamic') {
-          // detected the food.
-          if (contact.contact.m_fixtureA.m_userData === userData.detectionCircle || contact.contact.m_fixtureB.m_userData === userData.detectionCircle) {
-            // console.log('detected');
+        // console.log(player.getContactCount());
 
-            var bodynum = null;
-            if (contact.contact.m_fixtureB.m_isSensor && contact.contact.m_fixtureB.m_userData === userData.detectionCircle) {
-              bodynum = contact.contact.m_fixtureA.m_body.m_userData;
+        // ignoring the contact with whe walls
+        // while (contact && contact.next !== null) {
+        while (contact) {
+          // console.log(contact);
+          if (contact && contact.other.m_type === 'dynamic' && contact.contact.m_touchingFlag) {
+          // if (contact && contact.other.m_type === 'dynamic' ) {
+            // detected the food.
+            // if (contact.contact.m_fixtureA.m_userData === userData.detectionCircle || contact.contact.m_fixtureB.m_userData === userData.detectionCircle) {
+            var bodynum = contact.other.m_userData;
+            if (contact.contact.m_fixtureA.m_userData === userData.feedingCircle || contact.contact.m_fixtureB.m_userData === userData.feedingCircle) {
+            // player eats food
+              eatBall(bodynum);
+            } else if (contact.contact.m_fixtureA.m_userData === userData.detectionCircle || contact.contact.m_fixtureB.m_userData === userData.detectionCircle) {
+            // player detects food
+              // console.log('detected');
+              var playerPos = player.getPosition();
+              var ballPos = balls[bodynum].getPosition();
+              var relPos = ballPos.sub(playerPos);
+              var dist = relPos.normalize();
+              // var dist = Vec2.distance(ballPos, playerPos);
+
               detectedballs.push(bodynum);
-            } else if (contact.contact.m_fixtureA.m_isSensor && contact.contact.m_fixtureA.m_userData === userData.detectionCircle) {
-              bodynum = contact.contact.m_fixtureB.m_body.m_userData;
-              detectedballs.push(odynum);
+              movePlayer(relPos, dist, playerPos);
+
             }
 
-            var playerPos = player.getPosition();
-            var ballPos = balls[bodynum].getPosition();
-            var relPos = ballPos.sub(playerPos);
-            var dist = Vec2.distance(ballPos, playerPos);
-
-            movePlayer(relPos, dist, playerPos);
-
           }
-
-          // player eats food
-          if (contact.contact.m_fixtureB.m_isSensor && contact.contact.m_fixtureB.m_userData === userData.feedingCircle) {
-            // only resetting position for now. later reset velocity aswell.
-            var bodynum = contact.contact.m_fixtureA.m_body.m_userData;
-            balls[bodynum].setPosition(Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())));
-
-          } else if (contact.contact.m_fixtureA.m_isSensor && contact.contact.m_fixtureA.m_userData === userData.feedingCircle) {
-            var bodynum = contact.contact.m_fixtureB.m_body.m_userData;
-            balls[bodynum].setPosition(Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())));
-
-          }
+          contact = contact.next;
         }
-
         // run next step in simulation.
         world.step(timestep, velocityIterations, positionIterations);
 
@@ -349,7 +350,7 @@ const App: Component = (props) => {
           circlePos = [ball.getPosition().x, ball.getPosition().y]
           // console.log(circlePos, ball.getLinearVelocity());
           // console.log(body.getPosition(), body.getAngle());
-          ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, radius * ratio, 0, 2 * Math.PI, false);
+          ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, ballRadius * ratio, 0, 2 * Math.PI, false);
 
           // ctx.stroke();
           ctx.fill();
