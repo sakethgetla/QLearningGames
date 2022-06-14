@@ -32,6 +32,7 @@ export function createBall(toWorld: World, setUserData: number, ballRadius: numb
         density: 1,
         friction: 0,
         filterGroupIndex: -1, //dont interact with each other balls.
+        userData: [userData.ball, setUserData ],
         restitution: 1
     });
 
@@ -55,7 +56,7 @@ export function createPlayer(toWorld: World, playerRadius: number, frameSize: [n
     // detection range
     wiskers.forEach(( wisker, i) => {
         body.createFixture(Edge(Vec2(0, 0), wisker), {
-            isSensor: true, // doesnt collide with other but still collects info.
+            isSensor: true, // doesnt collide with other but still collects contact info.
             density: 0,
             friction: 0,
             restitution: 0,
@@ -94,7 +95,7 @@ export function createPlayer(toWorld: World, playerRadius: number, frameSize: [n
         friction: 0,
         isSensor: true, // doesnt collide with other but still collects info.
         restitution: 1,
-        userData: userData.feedingCircle
+        userData: [ userData.feedingCircle ]
     });
 
     // prevent player from leaving the map.
@@ -102,7 +103,8 @@ export function createPlayer(toWorld: World, playerRadius: number, frameSize: [n
     body.createFixture(dynamicCore, {
         density: 0,
         friction: 0,
-        restitution: 0
+        restitution: 0,
+        userData: [0]
     });
 
     // body.setLinearVelocity(Vec2((20 * Math.random()) - 10, (20 * Math.random()) - 10))

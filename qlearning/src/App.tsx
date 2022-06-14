@@ -25,7 +25,7 @@ const App: Component = (props) => {
   let playerRadius: number = ballRadius * 1.5;
   let playerCoreRadius: number = ballRadius * 0.5;
   let playerDetectionRadius: number = ballRadius * 7;
-  let detectedballs: any = [];
+  let activatedWiskers: obj = {};
   let numWiskers = 8;
   let wiskerRadius = playerRadius * 4;
   const wiskers = createWiskers(numWiskers, wiskerRadius);
@@ -74,6 +74,10 @@ const App: Component = (props) => {
 
   // create player
   player = createPlayer(world, playerRadius, frameSize, wiskers);
+  for (let i = 0; i < numWiskers; i++) {
+    activatedWiskers[i] = false;
+  }
+
   // console.log(player)
 
 
@@ -210,9 +214,6 @@ const App: Component = (props) => {
       // output.print();
       // console.log( output.dataSync())
 
-
-
-
     }
 
   }
@@ -247,7 +248,7 @@ const App: Component = (props) => {
         // ctx.beginPath();
 
         // it can only detect 1 collion, use contact.getNext to get the next contact
-        detectedballs = [];
+        // detectedballs = [];
         var contact = player.getContactList();
         // console.log(player.getContactCount());
 
@@ -260,11 +261,15 @@ const App: Component = (props) => {
             // detected the food.
             // if (contact.contact.m_fixtureA.m_userData === userData.detectionCircle || contact.contact.m_fixtureB.m_userData === userData.detectionCircle) {
             var bodynum = contact.other.m_userData[1];
-            if (contact.contact.m_fixtureA.m_userData === userData.feedingCircle || contact.contact.m_fixtureB.m_userData === userData.feedingCircle) {
+            if (contact.contact.m_fixtureA.m_userData[0] === userData.feedingCircle || contact.contact.m_fixtureB.m_userData[0] === userData.feedingCircle) {
               // player eats food
               eatBall(bodynum);
-            } else if (contact.contact.m_fixtureA.m_userData[0] === userData.wisker || contact.contact.m_fixtureB.m_userData[0] === userData.wisker) {
+            } else if (contact.contact.m_fixtureA.m_userData[0] === userData.wisker && contact.contact.m_fixtureB.m_userData[0] === userData.ball) {
               // player detects food
+              activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = true;
+
+            } else if (contact.contact.m_fixtureA.m_userData[0] === userData.ball && contact.contact.m_fixtureB.m_userData[0] === userData.wisker) {
+              activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = true;
               // console.log('detected');
 
               // var playerPos = player.getPosition();
@@ -285,15 +290,12 @@ const App: Component = (props) => {
         world.step(timestep, velocityIterations, positionIterations);
 
         // display balls
+        ctx.fillStyle = "green";
         balls.forEach((ball) => {
+          ctx.strokeStyle = "#000000";
           ctx.beginPath();
-
           circlePos = [ball.getPosition().x, ball.getPosition().y]
-          // console.log(circlePos, ball.getLinearVelocity());
-          // console.log(body.getPosition(), body.getAngle());
           ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, ballRadius * ratio, 0, 2 * Math.PI, false);
-
-          // ctx.stroke();
           ctx.fill();
         })
 
@@ -304,7 +306,16 @@ const App: Component = (props) => {
         ctx.stroke();
 
         // display wiskers
-        wiskers.forEach(wisker => {
+        ctx.strokeStyle = "#black";
+        wiskers.forEach((wisker, i) => {
+          if (activatedWiskers[i]) {
+            activatedWiskers[i] = false;
+            ctx.strokeStyle = "#FF0000";
+          } else {
+            ctx.strokeStyle = "#000000";
+            // ctx.strokeStyle = "#black";
+          }
+
           ctx.beginPath();
           ctx.moveTo(circlePos[0] * ratio, circlePos[1] * ratio);
           ctx.lineTo((wisker.x + circlePos[0]) * ratio, (wisker.y + circlePos[1]) * ratio);
@@ -312,17 +323,19 @@ const App: Component = (props) => {
 
         })
 
+        ctx.fillStyle = "black";
         ctx.beginPath();
         ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, playerCoreRadius * ratio, 0, 2 * Math.PI, false);
         ctx.fill();
 
 
-        // display balls
-        detectedballs.map(ballnum => {
-          ctx.moveTo(circlePos[0] * ratio, circlePos[1] * ratio);
-          ctx.lineTo(balls[ballnum].getPosition().x * ratio, balls[ballnum].getPosition().y * ratio)
-          ctx.stroke();
-        })
+        // // display balls
+        // ctx.beginPath();
+        // detectedballs.map(ballnum => {
+        //   ctx.moveTo(circlePos[0] * ratio, circlePos[1] * ratio);
+        //   ctx.lineTo(balls[ballnum].getPosition().x * ratio, balls[ballnum].getPosition().y * ratio)
+        //   ctx.stroke();
+        // })
 
 
         frame = requestAnimationFrame(draw)
