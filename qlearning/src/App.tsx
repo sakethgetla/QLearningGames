@@ -173,29 +173,6 @@ const App: Component = (props) => {
         break;
       }
     }
-    // console.log(e)
-    // switch (e.key) {
-    //   case "ArrowRight": {
-    //     // console.log("arrow right")
-    //     player.applyLinearImpulse(Vec2(10, 0), player.getPosition());
-    //     break;
-    //   }
-    //   case "ArrowLeft": {
-    //     // console.log("arrow left")
-    //     player.applyLinearImpulse(Vec2(-10, 0), player.getPosition());
-    //     break;
-    //   }
-    //   case "ArrowDown": {
-    //     // console.log("arrow down")
-    //     player.applyLinearImpulse(Vec2(0, 10), player.getPosition());
-    //     break;
-    //   }
-    //   case "ArrowUp": {
-    //     // console.log("arrow up")
-    //     player.applyLinearImpulse(Vec2(0, -10), player.getPosition());
-    //     break;
-    //   }
-    // }
   })
 
   // balls.push(createBall(world));
@@ -203,20 +180,27 @@ const App: Component = (props) => {
 
   // simulation
 
-  const model = new Model();
-  function movePlayer(relPos, dist, playerPos) {
+  const model = new Model(numWiskers);
+  function movePlayerWithAI() {
 
-    if (relPos && dist && playerPos) {
-      // var output = model.testModel([[1, 1, 1, 1, 10]])
+    // var output = model.testModel([[1, 1, 1, 1, 10]])
 
-      // console.log([  relPos.x, relPos.y, dist, playerPos.x, playerPos.y ])
-      var output = model.testModel([[relPos.x, relPos.y, dist, playerPos.x, playerPos.y]])
-      // output.print();
-      // console.log( output.dataSync())
-
+    // console.log([  relPos.x, relPos.y, dist, playerPos.x, playerPos.y ])
+    var input = [];
+    for (var i = 0; i < numWiskers; i++) {
+      input[i] = (activatedWiskers[i]) ? 1 : 0;
     }
+    var output = model.testModel([input]).dataSync()
+    // output.print();
+    // console.log( output.dataSync())
+    // console.log( output)
+
+
+    player.setLinearVelocity(Vec2(output[0] * velMag, output[1] * velMag), player.getPosition());
 
   }
+
+
 
   function eatBall(bodyNum) {
     // balls[bodyNum].setPosition
@@ -252,6 +236,13 @@ const App: Component = (props) => {
         var contact = player.getContactList();
         // console.log(player.getContactCount());
 
+        // var playerPos = player.getPosition();
+        // var ballPos = balls[bodynum].getPosition();
+        // var relPos = ballPos.sub(playerPos);
+        // var dist = relPos.normalize();
+        // var dist = Vec2.distance(ballPos, playerPos);
+
+
         // ignoring the contact with whe walls
         // while (contact && contact.next !== null) {
         while (contact) {
@@ -272,21 +263,17 @@ const App: Component = (props) => {
               activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = true;
               // console.log('detected');
 
-              // var playerPos = player.getPosition();
-              // var ballPos = balls[bodynum].getPosition();
-              // var relPos = ballPos.sub(playerPos);
-              // var dist = relPos.normalize();
-              // // var dist = Vec2.distance(ballPos, playerPos);
-
-              // detectedballs.push(bodynum);
-              // movePlayer(relPos, dist, playerPos);
 
             }
 
           }
           contact = contact.next;
         }
+
+        movePlayerWithAI();
+
         // run next step in simulation.
+        //
         world.step(timestep, velocityIterations, positionIterations);
 
         // display balls

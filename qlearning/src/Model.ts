@@ -3,16 +3,18 @@ import * as tfvis from '@tensorflow/tfjs-vis';
 
 export class Model {
   model;
-  constructor() {
+  inputShape;
+  constructor( inputShape: number) {
     // inputs: 5
-    // rel pos (x, y), dist, player position (x, y),
+    // wiskers [1 ... numWiskers]
     //
     // outputs: 4
     // arrows , 4
     this.model = tf.sequential();
-    this.model.add(tf.layers.dense({ inputShape: [5], units: 5, useBias: true }));
+    this.inputShape = inputShape;
+    this.model.add(tf.layers.dense({ inputShape: [inputShape], units: 5, useBias: true }));
     this.model.add(tf.layers.dense({ units: 10, useBias: true, activation: 'sigmoid' }));
-    this.model.add(tf.layers.dense({ units: 4, useBias: true }));
+    this.model.add(tf.layers.dense({ units: 2, useBias: true }));
 
     // this.model.compile({
     //   optimizer: tf.train.adam(),
@@ -23,9 +25,9 @@ export class Model {
     // return model;
   }
 
-  testModel(inputData) {
+  testModel(inputData: Array<Array<number>> ) {
     // console.log(inputData)
-    var input = tf.tensor2d(inputData, [inputData.length, 5])
+    var input = tf.tensor2d(inputData, [inputData.length, this.inputShape ])
 
     // console.log(input);
     return this.model.predict(input);
