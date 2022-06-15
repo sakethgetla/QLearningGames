@@ -41,7 +41,7 @@ export function createBall(toWorld: World, setUserData: number, ballRadius: numb
     return body
 }
 
-export function createPlayer(toWorld: World, playerRadius: number, frameSize: [number, number], wiskers: [Vec2]) {
+export function createPlayer(toWorld: World, playerRadius: number, frameSize: [number, number], wiskers: Vec2[]) {
     // const body = toWorld.createDynamicBody(Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())))
     // const body = toWorld.createKinematicBody(Vec2(radius + ((frameSize[0] - radius - radius) * Math.random()), radius + ((frameSize[1] - radius - radius) * Math.random())))
     //

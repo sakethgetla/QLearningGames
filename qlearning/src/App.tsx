@@ -1,5 +1,6 @@
 import type { Component } from 'solid-js';
 // import type { Vec2  as Vec2Type } from 'planck';
+import * as tf from '@tensorflow/tfjs';
 import { onCleanup, onMount } from 'solid-js';
 import * as planck from 'planck';
 import { Vec2 } from 'planck';
@@ -25,10 +26,16 @@ const App: Component = (props) => {
   let playerRadius: number = ballRadius * 1.5;
   let playerCoreRadius: number = ballRadius * 0.5;
   let playerDetectionRadius: number = ballRadius * 7;
-  let activatedWiskers: obj = {};
+  // let activatedWiskers: <activeatedWiskerType>;
+  // let activatedWiskers: { id: number };
+  let activatedWiskers: Array<0 | 1>;
   let numWiskers = 8;
   let wiskerRadius = playerRadius * 4;
   const wiskers = createWiskers(numWiskers, wiskerRadius);
+  // let data: Array<Array<number>>;
+  // let data: [number, number, number, number];
+  let data: Array<number[]>;
+  //(state, action, reward, next_state, done)
 
 
 
@@ -73,15 +80,16 @@ const App: Component = (props) => {
 
 
   // create player
+  activatedWiskers = [];
   player = createPlayer(world, playerRadius, frameSize, wiskers);
   for (let i = 0; i < numWiskers; i++) {
-    activatedWiskers[i] = false;
+    activatedWiskers[i] = 0;
   }
 
   // console.log(player)
 
 
-  function setPlayerVel(dir, status) {
+  function setPlayerVel(dir: ('ArrowRight' | 'ArrowLeft' | 'ArrowUp' | 'ArrowDown'), status: ('on' | 'off')) {
     switch (dir) {
       case "ArrowRight": {
         // console.log("arrow right")
@@ -176,33 +184,22 @@ const App: Component = (props) => {
   })
 
   // balls.push(createBall(world));
-  // done initalization, next simulation.
 
-  // simulation
+  const model = new Model(numWiskers, 4);
 
-  const model = new Model(numWiskers);
   function movePlayerWithAI() {
+    var qvalsTensor = model.getQval([activatedWiskers])
+    // qvalsTensor.print();
+    var qvals = qvalsTensor.dataSync()
+    // player.setLinearVelocity(Vec2((qvalsTensor.get([0,1]) - qvalsTensor.get([0])) * velMag, (qvalsTensor.get([3]) - qvalsTensor.get([2]) * velMag)), player.getPosition());
+    player.setLinearVelocity(Vec2((qvals[1] - qvals[0]) * velMag, (qvals[3] - qvals[2]) * velMag), player.getPosition());
 
-    // var output = model.testModel([[1, 1, 1, 1, 10]])
-
-    // console.log([  relPos.x, relPos.y, dist, playerPos.x, playerPos.y ])
-    var input = [];
-    for (var i = 0; i < numWiskers; i++) {
-      input[i] = (activatedWiskers[i]) ? 1 : 0;
-    }
-    var output = model.testModel([input]).dataSync()
-    // output.print();
-    // console.log( output.dataSync())
-    // console.log( output)
-
-
-    player.setLinearVelocity(Vec2(output[0] * velMag, output[1] * velMag), player.getPosition());
-
+    return qvalsTensor;
   }
 
 
 
-  function eatBall(bodyNum) {
+  function eatBall(bodyNum: number) {
     // balls[bodyNum].setPosition
 
     // console.log(bodyNum, balls);
@@ -214,9 +211,12 @@ const App: Component = (props) => {
 
   const velocityIterations = 8;
   const positionIterations = 3;
+  var oldState = [...activatedWiskers] // clone activated Wiskers
 
-  console.log(Vec2(4, 3).normalize());
+  // console.log(Vec2(4, 3).normalize());
 
+  // done initalization, next simulation.
+  // simulation
   const draw = (time: number) => {
     const ctx = canvasRef?.getContext("2d") ?? null;
     // ctx.fillstyle = "green";
@@ -234,14 +234,8 @@ const App: Component = (props) => {
         // it can only detect 1 collion, use contact.getNext to get the next contact
         // detectedballs = [];
         var contact = player.getContactList();
+        var reward = 0;
         // console.log(player.getContactCount());
-
-        // var playerPos = player.getPosition();
-        // var ballPos = balls[bodynum].getPosition();
-        // var relPos = ballPos.sub(playerPos);
-        // var dist = relPos.normalize();
-        // var dist = Vec2.distance(ballPos, playerPos);
-
 
         // ignoring the contact with whe walls
         // while (contact && contact.next !== null) {
@@ -255,12 +249,13 @@ const App: Component = (props) => {
             if (contact.contact.m_fixtureA.m_userData[0] === userData.feedingCircle || contact.contact.m_fixtureB.m_userData[0] === userData.feedingCircle) {
               // player eats food
               eatBall(bodynum);
+              reward++;
             } else if (contact.contact.m_fixtureA.m_userData[0] === userData.wisker && contact.contact.m_fixtureB.m_userData[0] === userData.ball) {
               // player detects food
-              activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = true;
+              activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = 1;
 
             } else if (contact.contact.m_fixtureA.m_userData[0] === userData.ball && contact.contact.m_fixtureB.m_userData[0] === userData.wisker) {
-              activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = true;
+              activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = 1;
               // console.log('detected');
 
 
@@ -270,7 +265,11 @@ const App: Component = (props) => {
           contact = contact.next;
         }
 
-        movePlayerWithAI();
+
+        let action = movePlayerWithAI();
+        oldState = [...activatedWiskers] // clone activated Wiskers
+        // model.storeData(tf.tensor2d( oldState , [1, 8]), reward, [ activatedWiskers ] );
+        model.storeData(tf.tensor(oldState), action.reshape([-1]), reward, tf.tensor([ activatedWiskers ]));
 
         // run next step in simulation.
         //
@@ -278,7 +277,7 @@ const App: Component = (props) => {
 
         // display balls
         ctx.fillStyle = "green";
-        balls.forEach((ball) => {
+        balls.forEach((ball: planck.Body) => {
           ctx.strokeStyle = "#000000";
           ctx.beginPath();
           circlePos = [ball.getPosition().x, ball.getPosition().y]
@@ -296,7 +295,7 @@ const App: Component = (props) => {
         ctx.strokeStyle = "#black";
         wiskers.forEach((wisker, i) => {
           if (activatedWiskers[i]) {
-            activatedWiskers[i] = false;
+            activatedWiskers[i] = 0;
             ctx.strokeStyle = "#FF0000";
           } else {
             ctx.strokeStyle = "#000000";
@@ -315,14 +314,6 @@ const App: Component = (props) => {
         ctx.arc(circlePos[0] * ratio, circlePos[1] * ratio, playerCoreRadius * ratio, 0, 2 * Math.PI, false);
         ctx.fill();
 
-
-        // // display balls
-        // ctx.beginPath();
-        // detectedballs.map(ballnum => {
-        //   ctx.moveTo(circlePos[0] * ratio, circlePos[1] * ratio);
-        //   ctx.lineTo(balls[ballnum].getPosition().x * ratio, balls[ballnum].getPosition().y * ratio)
-        //   ctx.stroke();
-        // })
 
 
         frame = requestAnimationFrame(draw)
@@ -347,6 +338,9 @@ const App: Component = (props) => {
           border: "1px solid #d3d3d3"
         }}
       />
+      <button onClick={() => {
+        console.log(model.trainingDataInputs)
+      }}> get weights</button>
     </div>
   );
 };
