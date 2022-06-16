@@ -7,8 +7,8 @@ export class Model {
   inputShape;
   outputShape;
   // trainingData;
-  trainingDataInputs: Array<tf.Tensor>;
-  trainingDataOutputs: Array<tf.Tensor>;
+  trainingDataInputs: tf.Tensor;
+  trainingDataOutputs: tf.Tensor;
   index;
   epsilon;
   constructor(inputShape: number, outputShape: number) {
@@ -20,31 +20,35 @@ export class Model {
     this.inputShape = inputShape;
     this.model = this.createModel(inputShape, outputShape)
     this.target = this.createModel(inputShape, outputShape)
-    this.trainingDataInputs = [];
-    this.trainingDataOutputs = [];
+    this.trainingDataInputs = tf.zeros([10000, inputShape]);
+    this.trainingDataOutputs = tf.zeros([10000, outputShape]);
     this.index = 0;
     this.epsilon = 0.1;
     this.outputShape = outputShape;
 
     // this.target = this.model.clone_model();
 
-    // this.model.compile({
-    //   optimizer: tf.train.adam(),
-    //   loss: tf.losses.meanSquaredError,
-    //   metrics: ['mse']
-    // })
+    this.model.compile({
+      optimizer: tf.train.adam(),
+      loss: tf.losses.meanSquaredError,
+      metrics: ['mse']
+    })
 
     // return model;
   }
 
+  // async storeData(prediction: tf.Tensor, action: tf.Tensor, reward: number, newState: tf.Tensor) {
   storeData(prediction: tf.Tensor, action: tf.Tensor, reward: number, newState: tf.Tensor) {
     // this.trainingDataInputs[this.index].map((pred: , i: number) => prediction[i])
     // this.trainingDataInputs[this.index] = prediction.reshape([-1]);
     // prediction.print()
-    this.trainingDataInputs.push(prediction.dataSync());
+    // this.trainingDataInputs.push(prediction.dataSync());
+    this.trainingDataInputs[this.index].add(prediction);
+
     // var input = tf.tensor2d(newState, [newState.length, this.inputShape])
     // newState.print()
-    var targetOutput = this.target.predict(newState).reshape([-1]);
+    var targetOutput = this.model.predict(newState).reshape([-1]);
+    // var targetOutput = this.target.predict(newState).reshape([-1]);
     // targetOutput.print()
     // var targetOutput = this.target.predict(input);
 
@@ -56,7 +60,7 @@ export class Model {
     //   targetOutput.print()
     // }
 
-    this.trainingDataOutputs.push(targetOutput.add(action.mul(reward)).dataSync());
+    // this.trainingDataOutputs.push(targetOutput.add(action.mul(reward)).dataSync());
 
     this.index++;
 
@@ -65,9 +69,12 @@ export class Model {
       this.trainingDataOutputs.shift();
     }
 
-    this.trainModel();
+    // console.log(await this.trainModel());
+    // this.trainModel()
+    //
   }
 
+  // async trainModel() {
   trainModel() {
     this.model.compile({
       optimizer: tf.train.adam(),
@@ -95,10 +102,18 @@ export class Model {
     // tf.tensor(this.trainingDataInputs).print()
     // tf.tensor2d(this.trainingDataInputs, [this.trainingDataInputs.length, this.inputShape]).print()
 
+    // console.log(tf.tensor2d(this.trainingDataInputs, [this.trainingDataInputs.length, this.inputShape]), tf.tensor2d(this.trainingDataOutputs, [this.trainingDataOutputs.length, this.outputShape]))
+
+
     // this.model.fit(tf.tensor2d(this.trainingDataInputs, [this.trainingDataInputs.length, this.inputShape]), tf.tensor2d(this.trainingDataOutputs, [this.trainingDataOutputs.length, this.outputShape]), {
-    this.model.fit(tf.tensor(this.trainingDataInputs), tf.tensor(this.trainingDataOutputs), {
-      batchSize: 5,
-      epochs: 5,
+    // this.model.getWeights()[0].print()
+    // console.log(this.model.getWeights()[0]);
+
+    // this.model.fit(tf.tensor(this.trainingDataInputs), tf.tensor(this.trainingDataOutputs), {
+
+    return this.model.fit(tf.tensor2d(this.trainingDataInputs, [this.trainingDataInputs.length, this.inputShape]), tf.tensor2d(this.trainingDataOutputs, [this.trainingDataOutputs.length, this.outputShape]), {
+      batchSize: 1,
+      epochs: 1,
       shuffle: true
     })
 
@@ -129,8 +144,8 @@ export class Model {
   createModel(inputShape: number, outputShape: number) {
     var m
     m = tf.sequential();
-    m.add(tf.layers.dense({ inputShape: [inputShape], units: 10, useBias: true }));
-    m.add(tf.layers.dense({ units: 10, useBias: true, activation: 'relu' }));
+    m.add(tf.layers.dense({ inputShape: [inputShape], units: 8, useBias: true }));
+    m.add(tf.layers.dense({ units: 6, useBias: true, activation: 'relu' }));
     m.add(tf.layers.dense({ units: outputShape, useBias: true }));
     return m
   }
