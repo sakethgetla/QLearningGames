@@ -187,9 +187,10 @@ const App: Component = (props) => {
 
   const model = new Model(numWiskers, 4);
 
-  function movePlayerWithAI() {
+  function movePlayerWithAI(): tf.Tensor {
     var qvalsTensor = model.getQval([activatedWiskers])
     // qvalsTensor.print();
+    // var qvals = qvalsTensor.arraySync()
     var qvals = qvalsTensor.dataSync()
     // player.setLinearVelocity(Vec2((qvalsTensor.get([0,1]) - qvalsTensor.get([0])) * velMag, (qvalsTensor.get([3]) - qvalsTensor.get([2]) * velMag)), player.getPosition());
     player.setLinearVelocity(Vec2((qvals[1] - qvals[0]) * velMag, (qvals[3] - qvals[2]) * velMag), player.getPosition());
@@ -268,8 +269,9 @@ const App: Component = (props) => {
 
         let action = movePlayerWithAI();
         oldState = [...activatedWiskers] // clone activated Wiskers
+        // oldState = structuredClone(activatedWiskers) // clone activated Wiskers
         // model.storeData(tf.tensor2d( oldState , [1, 8]), reward, [ activatedWiskers ] );
-        model.storeData(tf.tensor(oldState), action.reshape([-1]), reward, tf.tensor([ activatedWiskers ]));
+        model.storeData(tf.tensor([oldState]), action, reward, tf.tensor([activatedWiskers]));
 
         // run next step in simulation.
         //
