@@ -28,9 +28,9 @@ const App: Component = (props) => {
   let playerDetectionRadius: number = ballRadius * 7;
   // let activatedWiskers: <activeatedWiskerType>;
   // let activatedWiskers: { id: number };
-  let activatedWiskers: Array<0 | 1>;
-  let numWiskers = 8;
-  let wiskerRadius = playerRadius * 4;
+  let numWiskers = 12;
+  let activatedWiskers: Array<number> = new Array(numWiskers).fill(0);
+  let wiskerRadius = playerRadius * 6;
   const wiskers = createWiskers(numWiskers, wiskerRadius);
   // let data: Array<Array<number>>;
   // let data: [number, number, number, number];
@@ -80,11 +80,11 @@ const App: Component = (props) => {
 
 
   // create player
-  activatedWiskers = [];
+  // activatedWiskers = [];
   player = createPlayer(world, playerRadius, frameSize, wiskers);
-  for (let i = 0; i < numWiskers; i++) {
-    activatedWiskers[i] = 0;
-  }
+  // for (let i = 0; i < numWiskers; i++) {
+  //   activatedWiskers[i] = 0;
+  // }
 
   // console.log(player)
 
@@ -185,20 +185,19 @@ const App: Component = (props) => {
 
   // balls.push(createBall(world));
 
-  const model = new Model(numWiskers, 4);
+  const agent = new Model(numWiskers, 2);
 
-  function movePlayerWithAI(): tf.Tensor {
-    var qvalsTensor = model.getQval([activatedWiskers])
+  function movePlayerWithAI(qvals: number[]) {
     // qvalsTensor.print();
-    // var qvals = qvalsTensor.arraySync()
-    var qvals = qvalsTensor.dataSync()
-    // player.setLinearVelocity(Vec2((qvalsTensor.get([0,1]) - qvalsTensor.get([0])) * velMag, (qvalsTensor.get([3]) - qvalsTensor.get([2]) * velMag)), player.getPosition());
-    player.setLinearVelocity(Vec2((qvals[1] - qvals[0]) * velMag, (qvals[3] - qvals[2]) * velMag), player.getPosition());
 
-    return qvalsTensor;
+    player.setLinearVelocity(Vec2(qvals[0] * velMag, qvals[1] * velMag), player.getPosition());
+    // player.applyForceToCenter(Vec2(qvals[0] * velMag, qvals[1] * velMag));
+
+    // return qvalsTensor;
   }
 
 
+  // player.applyForceToCenter(Vec2(1 * velMag, 1 * velMag));
 
   function eatBall(bodyNum: number) {
     // balls[bodyNum].setPosition
@@ -213,12 +212,17 @@ const App: Component = (props) => {
   const velocityIterations = 8;
   const positionIterations = 3;
   var oldState = [...activatedWiskers] // clone activated Wiskers
+  var qvals: number[] = new Array(2) // actions
+  var reward = 0;
+  // var contact: planck.Contact.ContactEdge;
+  var contact: any; //ContactEdge
 
   // console.log(Vec2(4, 3).normalize());
 
   // done initalization, next simulation.
   // simulation
-  const draw = (time: number) => {
+  // const draw = async (time: number) => {
+  function draw(time: number) {
     const ctx = canvasRef?.getContext("2d") ?? null;
     // ctx.fillstyle = "green";
 
@@ -234,8 +238,10 @@ const App: Component = (props) => {
 
         // it can only detect 1 collion, use contact.getNext to get the next contact
         // detectedballs = [];
-        var contact = player.getContactList();
-        var reward = 0;
+
+
+        contact = player.getContactList();
+        reward = 0;
         // console.log(player.getContactCount());
 
         // ignoring the contact with whe walls
@@ -253,9 +259,12 @@ const App: Component = (props) => {
               reward++;
             } else if (contact.contact.m_fixtureA.m_userData[0] === userData.wisker && contact.contact.m_fixtureB.m_userData[0] === userData.ball) {
               // player detects food
+              // activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = wiskerRadius/Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
               activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = 1;
+              // console.log(Vec2.distance(balls[bodynum].getPosition(), player.getPosition()))
 
             } else if (contact.contact.m_fixtureA.m_userData[0] === userData.ball && contact.contact.m_fixtureB.m_userData[0] === userData.wisker) {
+              // activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = wiskerRadius/Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
               activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = 1;
               // console.log('detected');
 
@@ -266,12 +275,21 @@ const App: Component = (props) => {
           contact = contact.next;
         }
 
+        // console.log(activatedWiskers);
 
-        let action = movePlayerWithAI();
+        agent.storeData(oldState, qvals, reward, activatedWiskers);
+        qvals = agent.getQval([activatedWiskers]);
+        movePlayerWithAI(qvals);
         oldState = [...activatedWiskers] // clone activated Wiskers
+
+
+        // let action = this.model.getQval([activatedWiskers])
+        // movePlayerWithAI(action);
+
         // oldState = structuredClone(activatedWiskers) // clone activated Wiskers
         // model.storeData(tf.tensor2d( oldState , [1, 8]), reward, [ activatedWiskers ] );
-        model.storeData(tf.tensor([oldState]), action, reward, tf.tensor([activatedWiskers]));
+        // model.storeData(tf.tensor([oldState]), action, reward, tf.tensor([activatedWiskers]));
+        // model.storeData(tf.tensor([oldState]), action, reward, tf.tensor([activatedWiskers]));
 
         // run next step in simulation.
         //
@@ -341,7 +359,7 @@ const App: Component = (props) => {
         }}
       />
       <button onClick={() => {
-        console.log(model.trainingDataInputs)
+        console.log(agent.trainingDataInputs)
       }}> get weights</button>
     </div>
   );

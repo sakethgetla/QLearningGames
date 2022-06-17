@@ -21,6 +21,7 @@
   "dependencies": {
     "@tensorflow/tfjs": "^3.18.0",
     "@tensorflow/tfjs-vis": "^1.5.1",
+    "mathjs": "^10.6.1",
     "planck": "^1.0.0-alpha.4",
     "solid-js": "^1.4.2"
   }
