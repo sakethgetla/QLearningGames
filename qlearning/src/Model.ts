@@ -60,7 +60,7 @@ export class Model {
 
     // return this.model.fit(tf.tensor2d(this.trainingDataInputs, [this.trainingDataInputs.length, this.inputShape]), tf.tensor2d(this.trainingDataOutputs, [this.trainingDataOutputs.length, this.outputShape]), {
 
-    var [x, r, x1] = this.memoryBuffer.getBatch(5);
+    var [x, r, x1] = this.memoryBuffer.getBatch(50);
     // var [ data ] = this.memoryBuffer.getBatch(5);
     // console.log(x, x1)
     // console.log(data)
@@ -69,16 +69,19 @@ export class Model {
     // console.log(transpose( data ))
 
 
-    var xt = tf.tensor(x)
+    // var xt = tf.tensor(x)
     // xt.print()
-    var x1t = tf.tensor(x1)
+    var xt = tf.tidy(() => tf.tensor(x))
+
+    var x1t = tf.tidy(() => tf.tensor(x1))
     // x1t.print()
-    var y = this.target.predict(x1t)
+    var y = tf.tidy(() => this.target.predict(x1t))
 
     // // console.log(x.shape, y.shape)
 
-    this.model.fit(xt, y.add(tf.tensor( r ))).then((loss) => {
+    this.model.fit(xt, y.add(tf.tensor(r)) ).then((loss) => {
       console.log('trained', loss.history.loss);
+      this.target.setWeights(this.model.getWeights());
       this.trainModel();
     })
   }
@@ -97,7 +100,7 @@ export class Model {
       qvals = tf.tidy(() => this.model.predict(input));
       output = qvals.dataSync();
     } else {
-      let a = Array(this.outputShape).fill(0).map(()=> Math.random()-0.5);
+      let a = Array(this.outputShape).fill(0).map(() => Math.random() - 0.5);
       // a[Math.floor((Math.random()-0.5) * this.outputShape)] = 1
       qvals = tf.tensor([a]);
       output = a;
@@ -115,9 +118,9 @@ export class Model {
   createModel(inputShape: number, outputShape: number) {
     var m
     m = tf.sequential();
-    m.add(tf.layers.dense({ inputShape: [inputShape], units: 8, activation: 'relu', useBias: true }));
+    m.add(tf.layers.dense({ inputShape: [inputShape], units: 8, activation: 'tanh', useBias: true }));
     // m.add(tf.layers.dense({ units: 6, useBias: true, activation: 'relu' }));
-    m.add(tf.layers.dense({ units: outputShape, useBias: true, activation: 'relu' }));
+    m.add(tf.layers.dense({ units: outputShape, useBias: true, activation: 'tanh' }));
     return m
   }
 
