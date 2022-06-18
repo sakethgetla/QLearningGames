@@ -1,6 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 import * as tfvis from '@tensorflow/tfjs-vis';
 import { MemoryBuffer } from './MemoryBuffer';
+import { transpose } from 'mathjs';
 
 export class Model {
   model;
@@ -57,17 +58,27 @@ export class Model {
   trainModel() {
 
 
-   // return this.model.fit(tf.tensor2d(this.trainingDataInputs, [this.trainingDataInputs.length, this.inputShape]), tf.tensor2d(this.trainingDataOutputs, [this.trainingDataOutputs.length, this.outputShape]), {
+    // return this.model.fit(tf.tensor2d(this.trainingDataInputs, [this.trainingDataInputs.length, this.inputShape]), tf.tensor2d(this.trainingDataOutputs, [this.trainingDataOutputs.length, this.outputShape]), {
 
     var [x, r, x1] = this.memoryBuffer.getBatch(5);
-    // console.log(x.shape, x1.shape)
+    // var [ data ] = this.memoryBuffer.getBatch(5);
+    // console.log(x, x1)
+    // console.log(data)
+    // tf.tensor(data).print()
 
-    var y = this.target.predict(x1)
+    // console.log(transpose( data ))
 
-    // console.log(x.shape, y.shape)
 
-    this.model.fit(x, y).then((loss) => {
-      // console.log('trained', loss.history.loss);
+    var xt = tf.tensor(x)
+    // xt.print()
+    var x1t = tf.tensor(x1)
+    // x1t.print()
+    var y = this.target.predict(x1t)
+
+    // // console.log(x.shape, y.shape)
+
+    this.model.fit(xt, y.add(tf.tensor( r ))).then((loss) => {
+      console.log('trained', loss.history.loss);
       this.trainModel();
     })
   }
@@ -86,8 +97,8 @@ export class Model {
       qvals = tf.tidy(() => this.model.predict(input));
       output = qvals.dataSync();
     } else {
-      let a = Array(this.outputShape).fill(0);
-      a[Math.floor(Math.random() * this.outputShape)] = 1
+      let a = Array(this.outputShape).fill(0).map(()=> Math.random()-0.5);
+      // a[Math.floor((Math.random()-0.5) * this.outputShape)] = 1
       qvals = tf.tensor([a]);
       output = a;
     }

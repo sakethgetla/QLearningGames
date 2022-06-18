@@ -259,13 +259,13 @@ const App: Component = (props) => {
               reward++;
             } else if (contact.contact.m_fixtureA.m_userData[0] === userData.wisker && contact.contact.m_fixtureB.m_userData[0] === userData.ball) {
               // player detects food
-              // activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = wiskerRadius/Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
-              activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = 1;
+              activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = wiskerRadius/Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
+              // activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = 1;
               // console.log(Vec2.distance(balls[bodynum].getPosition(), player.getPosition()))
 
             } else if (contact.contact.m_fixtureA.m_userData[0] === userData.ball && contact.contact.m_fixtureB.m_userData[0] === userData.wisker) {
-              // activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = wiskerRadius/Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
-              activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = 1;
+              activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = wiskerRadius/Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
+              // activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = 1;
               // console.log('detected');
 
 
