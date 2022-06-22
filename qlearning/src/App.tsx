@@ -1,9 +1,9 @@
 import type { Component } from 'solid-js';
 // import type { Vec2  as Vec2Type } from 'planck';
-import * as tf from '@tensorflow/tfjs';
+// import * as tf from '@tensorflow/tfjs';
 import { onCleanup, onMount } from 'solid-js';
-import * as planck from 'planck';
-import { Vec2 } from 'planck';
+// import * as planck from 'planck';
+import { Edge, Body, World, Vec2 } from 'planck';
 import { Model } from './Model';
 import { createBall, createPlayer, userData, createWiskers } from './helperFunctions'
 
@@ -41,16 +41,16 @@ const App: Component = (props) => {
 
   // const gravity = planck.Vec2(0.0, 50.0);
 
-  const world = new planck.World(planck.Vec2(0, 0));
+  const world = new World(Vec2(0, 0));
 
   // const groundBody = world.createBody();
 
 
   // create borders
-  world.createBody().createFixture(planck.Edge(Vec2(0, frameSize[1]), Vec2(frameSize[0], frameSize[1])))
-  world.createBody().createFixture(planck.Edge(Vec2(frameSize[0], 0), Vec2(frameSize[0], frameSize[1])))
-  world.createBody().createFixture(planck.Edge(Vec2(0, 0), Vec2(0, frameSize[1])))
-  world.createBody().createFixture(planck.Edge(Vec2(0, 0), Vec2(frameSize[0], 0)))
+  world.createBody().createFixture(Edge(Vec2(0, frameSize[1]), Vec2(frameSize[0], frameSize[1])))
+  world.createBody().createFixture(Edge(Vec2(frameSize[0], 0), Vec2(frameSize[0], frameSize[1])))
+  world.createBody().createFixture(Edge(Vec2(0, 0), Vec2(0, frameSize[1])))
+  world.createBody().createFixture(Edge(Vec2(0, 0), Vec2(frameSize[0], 0)))
 
   // Define fixtures with a shape, friction, density, etc.
   // Create fixtures on the body.
@@ -214,7 +214,7 @@ const App: Component = (props) => {
   var oldState = [...activatedWiskers] // clone activated Wiskers
   var qvals: number[] = new Array(2) // actions
   var reward = 0;
-  // var contact: planck.Contact.ContactEdge;
+  // var contact: Contact.ContactEdge;
   var contact: any; //ContactEdge
 
   // console.log(Vec2(4, 3).normalize());
@@ -297,7 +297,7 @@ const App: Component = (props) => {
 
         // display balls
         ctx.fillStyle = "green";
-        balls.forEach((ball: planck.Body) => {
+        balls.forEach((ball: Body) => {
           ctx.strokeStyle = "#000000";
           ctx.beginPath();
           circlePos = [ball.getPosition().x, ball.getPosition().y]
