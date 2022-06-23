@@ -13,7 +13,7 @@ const App: Component = (props) => {
   let frame: number;
   let x: number = 0;
   let lastTime: number = 0;
-  const FPS: number = 60;
+  const FPS: number = 30;
   const ratio: number = 10;
   let circlePos: [number, number] = [10.0, 20.0];
   let ballRadius: number = 1.0;
@@ -185,8 +185,13 @@ const App: Component = (props) => {
 
   // balls.push(createBall(world));
 
-  const agent = new Model(numWiskers, 2);
+  // input wiskers and agent position.
+  const agent = new Model(numWiskers + 2, 2);
 
+  function relocatePlayer() {
+    // player.setPosition(Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())));
+    player.setPosition(Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())));
+  }
   function movePlayerWithAI(qvals: number[]) {
     // qvalsTensor.print();
 
@@ -211,12 +216,14 @@ const App: Component = (props) => {
 
   const velocityIterations = 8;
   const positionIterations = 3;
-  var oldState = [...activatedWiskers] // clone activated Wiskers
-  var qvals: number[] = new Array(2) // actions
+  var oldState = [...activatedWiskers, player.getPosition().x, player.getPosition().y] // clone activated Wiskers
+
+  var qvals: number[] = new Array(2).fill(0) // actions
   var reward = 0;
   // var contact: Contact.ContactEdge;
   var contact: any; //ContactEdge
 
+  console.log(oldState);
   // console.log(Vec2(4, 3).normalize());
 
   // done initalization, next simulation.
@@ -229,8 +236,11 @@ const App: Component = (props) => {
     // console.log('here')
     if (ctx) {
       // ctx.fillstyle = "#028888";
-      x = x === FPS ? 0 : x;
+      // x = x === FPS ? 0 : x;
       if (time > lastTime + (1000 / FPS)) {
+        // console.log(time);
+        x++;
+        lastTime = time;
         //
         // clear screen
         ctx.clearRect(0, 0, frameSize[0] * ratio, frameSize[1] * ratio);
@@ -256,15 +266,15 @@ const App: Component = (props) => {
             if (contact.contact.m_fixtureA.m_userData[0] === userData.feedingCircle || contact.contact.m_fixtureB.m_userData[0] === userData.feedingCircle) {
               // player eats food
               eatBall(bodynum);
-              reward++;
+              // reward++;
             } else if (contact.contact.m_fixtureA.m_userData[0] === userData.wisker && contact.contact.m_fixtureB.m_userData[0] === userData.ball) {
               // player detects food
-              activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = wiskerRadius/Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
+              activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = wiskerRadius / Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
               // activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = 1;
               // console.log(Vec2.distance(balls[bodynum].getPosition(), player.getPosition()))
 
             } else if (contact.contact.m_fixtureA.m_userData[0] === userData.ball && contact.contact.m_fixtureB.m_userData[0] === userData.wisker) {
-              activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = wiskerRadius/Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
+              activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = wiskerRadius / Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
               // activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = 1;
               // console.log('detected');
 
@@ -275,12 +285,25 @@ const App: Component = (props) => {
           contact = contact.next;
         }
 
+        var distToCentre = Vec2.distance(Vec2(frameSize[0] / 2, frameSize[1] / 2), player.getPosition())
+
+
+
+        reward += 10 / distToCentre;
+        // reward -= 10*distToCentre;
+        // console.log(reward);
+
+        //get centre of the canvas and get distance to player position
+
         // console.log(activatedWiskers);
 
-        agent.storeData(oldState, qvals, reward, activatedWiskers);
-        qvals = agent.getQval([activatedWiskers]);
+        agent.storeData(oldState, qvals, reward, [...activatedWiskers, player.getPosition().x, player.getPosition().y]);
+        // agent.storeData(oldState, qvals, reward, [[ ...activatedWiskers, player.getPosition().x, player.getPosition().y ]]);
+
+        qvals = agent.getQval([[...activatedWiskers, player.getPosition().x, player.getPosition().y]]);
         movePlayerWithAI(qvals);
-        oldState = [...activatedWiskers] // clone activated Wiskers
+
+        oldState = [...activatedWiskers, player.getPosition().x, player.getPosition().y] // clone activated Wiskers
 
 
         // let action = this.model.getQval([activatedWiskers])
@@ -335,11 +358,15 @@ const App: Component = (props) => {
         ctx.fill();
 
 
+        if (x > FPS * 10) {
+          relocatePlayer();
+          x = 0;
+        }
 
-        frame = requestAnimationFrame(draw)
-        x++;
+        // x++;
         // console.log('frame:', frame, x);
       }
+      frame = requestAnimationFrame(draw)
     }
 
   };

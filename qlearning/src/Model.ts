@@ -1,4 +1,4 @@
-import {zeros, Tensor, tensor, train, losses, sequential, layers, tensor2d, tidy} from '@tensorflow/tfjs' ;
+import { zeros, Tensor, tensor, train, losses, sequential, layers, tensor2d, tidy } from '@tensorflow/tfjs';
 // import {zeros, Tensor} from '@tensorflow/tfjs';
 // import * as tfvis from '@tensorflow/tfjs-vis';
 import { MemoryBuffer } from './MemoryBuffer';
@@ -19,6 +19,7 @@ export class Model {
   index;
   epsilon;
   oldState: Tensor;
+  discountFactor: number;
   // p: String;
   memoryBuffer: MemoryBuffer;
   constructor(inputShape: number, outputShape: number) {
@@ -38,6 +39,7 @@ export class Model {
     // this.p = 'finished';
     this.oldState = zeros([1, inputShape]);
     this.memoryBuffer = new MemoryBuffer(inputShape, outputShape);
+    this.discountFactor = 0.5;
 
     // this.target = this.model.clone_model();
 
@@ -47,7 +49,8 @@ export class Model {
       // metrics: ['mse']
     })
 
-    this.trainModel()
+    // this.trainModel()
+
     // return model;
   }
 
@@ -55,6 +58,10 @@ export class Model {
   storeData(state: number[], qvals: number[], reward: number, nextState: number[]) {
 
     this.memoryBuffer.addData(state, qvals, reward, nextState);
+    if (this.memoryBuffer.states.length === 200) {
+
+      this.trainModel()
+    }
   }
 
   // async trainModel() {
@@ -63,30 +70,36 @@ export class Model {
 
     // return this.model.fit(tensor2d(this.trainingDataInputs, [this.trainingDataInputs.length, this.inputShape]), tensor2d(this.trainingDataOutputs, [this.trainingDataOutputs.length, this.outputShape]), {
 
-    var [x, r, x1] = this.memoryBuffer.getBatch(50);
-    // var [ data ] = this.memoryBuffer.getBatch(5);
-    // console.log(x, x1)
-    // console.log(data)
-    // tensor(data).print()
+    // if (this.memoryBuffer.states.length > 100) {
+    if (true) {
 
-    // console.log(transpose( data ))
+      var [x, r, x1] = this.memoryBuffer.getBatch(100);
+      // var [ data ] = this.memoryBuffer.getBatch(5);
+      // console.log(x, x1)
+      // console.log(r)
+      // tensor(data).print()
+
+      // console.log(transpose( data ))
 
 
-    // var xt = tensor(x)
-    // xt.print()
-    var xt = tidy(() => tensor(x))
+      // var xt = tensor(x)
+      // xt.print()
+      var xt = tidy(() => tensor(x))
 
-    var x1t = tidy(() => tensor(x1))
-    // x1t.print()
-    var y = tidy(() => this.target.predict(x1t))
+      var x1t = tidy(() => tensor(x1))
+      // x1t.print()
+      var y = tidy(() => this.target.predict(x1t))
 
-    // // console.log(x.shape, y.shape)
+      // // console.log(x.shape, y.shape)
 
-    this.model.fit(xt, y.add(tensor(r)).mul(0.5) ).then((loss) => {
-      console.log('trained', loss.history.loss);
-      this.target.setWeights(this.model.getWeights());
-      this.trainModel();
-    })
+      // this.model.fit(xt, y.add(tensor(r)).mul(0.5) ).then((loss) => {
+      this.model.fit(xt, tensor(r).add(y.mul(this.discountFactor))).then((loss) => {
+        console.log('trained', loss.history.loss);
+        this.target.setWeights(this.model.getWeights());
+        this.trainModel();
+      })
+    }
+
   }
 
   getQval(inputData: Array<Array<number>>): number[] {
@@ -99,7 +112,8 @@ export class Model {
     // var output: (Float32Array | Uint8Array);
     var output: number[];
     var qvals: Tensor;
-    if (Math.random() > this.epsilon) {
+    // if (Math.random() > this.epsilon) {
+    if (Math.random() > 5000/(this.memoryBuffer.states.length + 5000)) {
       qvals = tidy(() => this.model.predict(input));
       output = qvals.dataSync();
     } else {

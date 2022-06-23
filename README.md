@@ -17,8 +17,9 @@ TODO
  
  Exps to make the model learn better.
  - [ ] add dropout to model.
- - [ ] add current location to input.
- - [ ] negative reward for going far from the centre of the screen? to stop from getting stuck in the corner.
+ - [x] add current location to input.
+ - [x] negative reward for going far from the centre of the screen? to stop from getting stuck in the corner.
+ - [ ] after set time the model relocates to a random position. decrease the amount of time stuck in corner
  - [ ] pre-train the model with tf-core on backend. then deploy to fronend.
  - [ ] 
 

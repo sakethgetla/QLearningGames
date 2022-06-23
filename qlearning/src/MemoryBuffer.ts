@@ -4,7 +4,7 @@
 
 
 export class MemoryBuffer {
-    data: Array<number[][]>;
+    // data: Array<number[][]>;
     states: number[][];
     // qvals: number[][];
     rewards: number[][];
@@ -14,7 +14,7 @@ export class MemoryBuffer {
     qvalShape: number;
 
     constructor(stateShape: number, qvalShape: number) {
-        this.data = [];
+        // this.data = [];
         this.states = [];
         // this.qvals = [];
         this.rewards = [];
@@ -29,10 +29,13 @@ export class MemoryBuffer {
         // addData(a: number[], b: number[], c: number, d: number[]) {
         // if the model performs no actions then dont store it
         // because in this env it never good to stay still.
-        // console.log(a, b, c, d)
+        // console.log({ state, qval, reward, nextState });
         // this.index++;
+      //
+      //
 
-        if (Math.max(...qval) > 0 && this.data.length < 10000) {
+        // if (Math.max(...qval) > 0 && this.data.length < 10000) {
+        if (this.states.length < 100000) {
             // console.log(qval, reward, add(qval, reward))
             // console.log(qval, reward, qval.map(q => q + reward))
 
@@ -41,12 +44,13 @@ export class MemoryBuffer {
             // this.state.push(state)
             this.states.push(state);
             // this.qvals.push(qval);
-            this.rewards.push(qval.map(q => q + reward));
+            this.rewards.push(qval.map(q => q * reward));
             // console.log(nextState)
             this.nextStates.push(nextState);
             // // this.nextStates[this.index] = nextState;
             // this.index++;
-        } else if( this.states.length > 1000 ){
+        // } else if( this.states.length > 1000 ){
+        } else {
 
             this.states.push(state);
             this.rewards.push(qval.map(q => q + reward));
@@ -89,7 +93,7 @@ export class MemoryBuffer {
             // console.log(nextState.shape)
             // console.assert(nextState !== undefined)
 
-            var d = indexs.map(i => this.data[i]);
+            // var d = indexs.map(i => this.data[i]);
             var a = indexs.map(i => this.states[i]);
             var b = indexs.map(i => this.rewards[i]);
             var c = indexs.map(i => this.nextStates[i]);
