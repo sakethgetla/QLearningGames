@@ -19,7 +19,8 @@ TODO
  - [ ] add dropout to model.
  - [x] add current location to input.
  - [x] negative reward for going far from the centre of the screen? to stop from getting stuck in the corner.
- - [ ] after set time the model relocates to a random position. decrease the amount of time stuck in corner
+ - [x] after set time the model relocates to a random position. decrease the amount of time stuck in corner
+ - [ ] choose random action random action more often in the begining.
  - [ ] pre-train the model with tf-core on backend. then deploy to fronend.
  - [ ] 
 
