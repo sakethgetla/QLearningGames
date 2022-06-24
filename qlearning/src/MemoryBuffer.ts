@@ -31,13 +31,16 @@ export class MemoryBuffer {
         // because in this env it never good to stay still.
         // console.log({ state, qval, reward, nextState });
         // this.index++;
-      //
-      //
+        //
+        //
 
         // if (Math.max(...qval) > 0 && this.data.length < 10000) {
+
+        // if (0 < Math.max(...state.slice(0, -2))) {
         if (this.states.length < 100000) {
+            // console.log(Math.max(...state.slice(0, -2)))
             // console.log(qval, reward, add(qval, reward))
-            // console.log(qval, reward, qval.map(q => q + reward))
+            // console.log(qval, reward, qval.map(q => q * reward))
 
             // this.data.push([state, qval.map(q => q + reward), nextState])
 
@@ -49,7 +52,7 @@ export class MemoryBuffer {
             this.nextStates.push(nextState);
             // // this.nextStates[this.index] = nextState;
             // this.index++;
-        // } else if( this.states.length > 1000 ){
+            // } else if( this.states.length > 1000 ){
         } else {
 
             this.states.push(state);
@@ -60,6 +63,7 @@ export class MemoryBuffer {
             this.rewards.shift()
             this.nextStates.shift()
         }
+        // }
 
 
     }
@@ -75,7 +79,7 @@ export class MemoryBuffer {
     getBatch(size: number): number[][][] {
         // return [tf.zeros([size, this.stateShape]), tf.zeros([size, this.qvalShape]), tf.zeros([size, this.stateShape])]
         if (this.states.length > 0) {
-        // if (false) {
+            // if (false) {
 
             var indexs = this.randomIndexs(size);
             // var states = tf.tensor(indexs.map(i => this.states[i]));

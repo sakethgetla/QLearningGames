@@ -20,8 +20,8 @@ const App: Component = (props) => {
   let frameSize: [number, number] = [50.0, 50.0];
   // let ball: {body: anyType, vel: Vec2, pos: Vec2} ;
   let balls: any = [];
-  let velMag: number = 20;
-  let numBalls: number = 10;
+  let velMag: number = 50;
+  let numBalls: number = 30;
   let player: any = null;
   let playerRadius: number = ballRadius * 1.5;
   let playerCoreRadius: number = ballRadius * 0.5;
@@ -209,14 +209,16 @@ const App: Component = (props) => {
 
     // console.log(bodyNum, balls);
     balls[bodyNum].setPosition(Vec2(playerRadius + ((frameSize[0] - playerRadius - playerRadius) * Math.random()), playerRadius + ((frameSize[1] - playerRadius - playerRadius) * Math.random())));
-    balls[bodyNum].setLinearVelocity(Vec2((20 * Math.random()) - 10, (20 * Math.random()) - 10));
+    balls[bodyNum].setLinearVelocity(Vec2(0, 0));
+    // balls[bodyNum].setLinearVelocity(Vec2((20 * Math.random()) - 10, (20 * Math.random()) - 10));
   }
 
   const timestep = 1 / FPS;
 
   const velocityIterations = 8;
   const positionIterations = 3;
-  var oldState = [...activatedWiskers, player.getPosition().x, player.getPosition().y] // clone activated Wiskers
+  var state = [...activatedWiskers, player.getPosition().x/ frameSize[0], player.getPosition().y/ frameSize[1]] // clone activated Wiskers
+  var oldState = state // clone activated Wiskers
 
   var qvals: number[] = new Array(2).fill(0) // actions
   var reward = 0;
@@ -250,6 +252,7 @@ const App: Component = (props) => {
         // detectedballs = [];
 
 
+        activatedWiskers.fill(0)
         contact = player.getContactList();
         reward = 0;
         // console.log(player.getContactCount());
@@ -266,15 +269,15 @@ const App: Component = (props) => {
             if (contact.contact.m_fixtureA.m_userData[0] === userData.feedingCircle || contact.contact.m_fixtureB.m_userData[0] === userData.feedingCircle) {
               // player eats food
               eatBall(bodynum);
-              // reward++;
+              reward += 10;
             } else if (contact.contact.m_fixtureA.m_userData[0] === userData.wisker && contact.contact.m_fixtureB.m_userData[0] === userData.ball) {
               // player detects food
-              activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = wiskerRadius / Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
+              activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] += wiskerRadius / Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
               // activatedWiskers[contact.contact.m_fixtureA.m_userData[1]] = 1;
               // console.log(Vec2.distance(balls[bodynum].getPosition(), player.getPosition()))
 
             } else if (contact.contact.m_fixtureA.m_userData[0] === userData.ball && contact.contact.m_fixtureB.m_userData[0] === userData.wisker) {
-              activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = wiskerRadius / Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
+              activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] += wiskerRadius / Vec2.distance(balls[bodynum].getPosition(), player.getPosition());
               // activatedWiskers[contact.contact.m_fixtureB.m_userData[1]] = 1;
               // console.log('detected');
 
@@ -289,7 +292,7 @@ const App: Component = (props) => {
 
 
 
-        reward += 10 / distToCentre;
+        // reward += 10 / distToCentre;
         // reward -= 10*distToCentre;
         // console.log(reward);
 
@@ -297,13 +300,14 @@ const App: Component = (props) => {
 
         // console.log(activatedWiskers);
 
-        agent.storeData(oldState, qvals, reward, [...activatedWiskers, player.getPosition().x, player.getPosition().y]);
+        state = [ ...activatedWiskers, player.getPosition().x, player.getPosition().y ]
+        agent.storeData(oldState, qvals, reward, state);
         // agent.storeData(oldState, qvals, reward, [[ ...activatedWiskers, player.getPosition().x, player.getPosition().y ]]);
 
-        qvals = agent.getQval([[...activatedWiskers, player.getPosition().x, player.getPosition().y]]);
+        qvals = agent.getQval([state]);
         movePlayerWithAI(qvals);
 
-        oldState = [...activatedWiskers, player.getPosition().x, player.getPosition().y] // clone activated Wiskers
+        oldState = state // clone activated Wiskers
 
 
         // let action = this.model.getQval([activatedWiskers])

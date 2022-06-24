@@ -22,7 +22,7 @@ export function createBall(toWorld: World, setUserData: number, ballRadius: numb
     // const body = toWorld.createKinematicBody(Vec2(radius + ((frameSize[0] - radius - radius) * Math.random()), radius + ((frameSize[1] - radius - radius) * Math.random())))
     const body = toWorld.createDynamicBody({
         position: Vec2(ballRadius + ((frameSize[0] - ballRadius - ballRadius) * Math.random()), ballRadius + ((frameSize[1] - ballRadius - ballRadius) * Math.random())),
-        linearVelocity: Vec2((20 * Math.random()) - 10, (20 * Math.random()) - 10),
+        // linearVelocity: Vec2((20 * Math.random()) - 10, (20 * Math.random()) - 10),
         userData: [userData.ball, setUserData ]
     })
 

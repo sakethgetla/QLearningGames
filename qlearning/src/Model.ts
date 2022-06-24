@@ -34,12 +34,12 @@ export class Model {
     this.trainingDataInputs = zeros([1, inputShape])
     this.trainingDataOutputs = zeros([1, outputShape])
     this.index = 0;
-    this.epsilon = 0.05;
+    this.epsilon = 100;
     this.outputShape = outputShape;
     // this.p = 'finished';
     this.oldState = zeros([1, inputShape]);
     this.memoryBuffer = new MemoryBuffer(inputShape, outputShape);
-    this.discountFactor = 0.5;
+    this.discountFactor = 0.9;
 
     // this.target = this.model.clone_model();
 
@@ -61,6 +61,7 @@ export class Model {
     if (this.memoryBuffer.states.length === 200) {
 
       this.trainModel()
+        console.log('training');
     }
   }
 
@@ -90,11 +91,14 @@ export class Model {
       // x1t.print()
       var y = tidy(() => this.target.predict(x1t))
 
-      // // console.log(x.shape, y.shape)
+      var label = tidy(()=> tensor(r).add(y.mul(this.discountFactor)));
+      // console.log(xt, label)
+      // xt.print()
+      // label.print()
 
       // this.model.fit(xt, y.add(tensor(r)).mul(0.5) ).then((loss) => {
-      this.model.fit(xt, tensor(r).add(y.mul(this.discountFactor))).then((loss) => {
-        console.log('trained', loss.history.loss);
+      this.model.fit(xt, label).then((loss) => {
+        // console.log('trained', loss.history.loss);
         this.target.setWeights(this.model.getWeights());
         this.trainModel();
       })
@@ -113,7 +117,7 @@ export class Model {
     var output: number[];
     var qvals: Tensor;
     // if (Math.random() > this.epsilon) {
-    if (Math.random() > 5000/(this.memoryBuffer.states.length + 5000)) {
+    if (Math.random() > this.epsilon/(this.memoryBuffer.states.length + this.epsilon)) {
       qvals = tidy(() => this.model.predict(input));
       output = qvals.dataSync();
     } else {
@@ -136,7 +140,7 @@ export class Model {
     var m
     m = sequential();
     m.add(layers.dense({ inputShape: [inputShape], units: 8, activation: 'tanh', useBias: true }));
-    // m.add(layers.dense({ units: 6, useBias: true, activation: 'relu' }));
+    m.add(layers.dense({ units: 6, useBias: true, activation: 'tanh' }));
     m.add(layers.dense({ units: outputShape, useBias: true, activation: 'tanh' }));
     return m
   }
